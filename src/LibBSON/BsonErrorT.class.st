@@ -56,3 +56,10 @@ BsonErrorT >> message: anObject [
 	"This method was automatically generated"
 	handle replaceFrom: OFFSET_MESSAGE to: OFFSET_MESSAGE + 503 with: anObject getHandle startingAt: 1
 ]
+
+{ #category : 'accessing' }
+BsonErrorT >> messageString [
+	"since message is a char[504]..."
+
+	^ self message getHandle asString
+]
