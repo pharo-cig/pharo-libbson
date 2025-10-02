@@ -1,6 +1,34 @@
+"
+Bindings for [libbson](https://github.com/mongodb/mongo-c-driver/tree/master/src/libbson).
+
+Generated with: ```smalltalk
+CigCLibraryGenerator new
+	packageName: 'LibBSON';
+	prefix: 'BSON';
+	libraryName: 'bson';
+	unixLibraryName: 'libbson-1.0.so';
+	cExcludePath: '/usr/include';
+	cIncludePath: '/usr/include/libbson-1.0';
+	importUnit: '
+#include <bson/bson.h>';
+	withNameGenerator: [ :gen | gen withoutPrefixInFunctionName ];
+	withElementGenerator: [ :gen | 
+		""strings returned are required to be freed by the user""
+		gen makeAllFunctionsReturningStringReturnPointer.
+		""this is deprecated anyway""
+		gen removeElement: #bson_memory_order ];
+	""as this will exchange with mongoc, we need to use the same thread (otherwise, 
+	 it will crash as they do not share same memory pages)""
+	useWorkerThreadNamed: 'mongoc';
+	generate.
+```
+"
 Class {
 	#name : 'LibBson',
 	#superclass : 'FFILibrary',
+	#instVars : [
+		'runner'
+	],
 	#pools : [
 		'BSONConstants',
 		'BSONTypedef'
@@ -717,25 +745,25 @@ LibBson >> append_valueBson: bson key: key key_length: key_length value: value [
 { #category : 'public - bson' }
 LibBson >> array_as_canonical_extended_jsonBson: bson length: length [
 
-	^ self ffiCall: #(char* bson_array_as_canonical_extended_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_array_as_canonical_extended_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
 LibBson >> array_as_jsonBson: bson length: length [
 
-	^ self ffiCall: #(char* bson_array_as_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_array_as_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
 LibBson >> array_as_legacy_extended_jsonBson: bson length: length [
 
-	^ self ffiCall: #(char* bson_array_as_legacy_extended_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_array_as_legacy_extended_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
 LibBson >> array_as_relaxed_extended_jsonBson: bson length: length [
 
-	^ self ffiCall: #(char* bson_array_as_relaxed_extended_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_array_as_relaxed_extended_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
@@ -982,7 +1010,7 @@ LibBson >> as_jsonBson: bson length: length [
 	 * Returns: A newly allocated string that should be freed with bson_free().
 	 */"
 
-	^ self ffiCall: #(char* bson_as_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_as_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
@@ -1007,13 +1035,13 @@ LibBson >> as_json_with_optsBson: bson length: length opts: opts [
 	 * Returns: A newly allocated string that should be freed with bson_free().
 	 */"
 
-	^ self ffiCall: #(char* bson_as_json_with_opts(const bson_t* bson, size_t* length, const bson_json_opts_t* opts))
+	^ self ffiCall: #(void* bson_as_json_with_opts(const bson_t* bson, size_t* length, const bson_json_opts_t* opts))
 ]
 
 { #category : 'public - bson' }
 LibBson >> as_legacy_extended_jsonBson: bson length: length [
 
-	^ self ffiCall: #(char* bson_as_legacy_extended_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_as_legacy_extended_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson' }
@@ -1037,7 +1065,7 @@ LibBson >> as_relaxed_extended_jsonBson: bson length: length [
 	 * Returns: A newly allocated string that should be freed with bson_free().
 	 */"
 
-	^ self ffiCall: #(char* bson_as_relaxed_extended_json(const bson_t* bson, size_t* length))
+	^ self ffiCall: #(void* bson_as_relaxed_extended_json(const bson_t* bson, size_t* length))
 ]
 
 { #category : 'public - bson-string' }
@@ -1560,7 +1588,7 @@ LibBson >> iter_double_unsafe: iter [
 { #category : 'public - bson-iter' }
 LibBson >> iter_dup_utf8Iter: iter length: length [
 
-	^ self ffiCall: #(char* bson_iter_dup_utf8(const bson_iter_t* iter, uint32_t* length))
+	^ self ffiCall: #(void* bson_iter_dup_utf8(const bson_iter_t* iter, uint32_t* length))
 ]
 
 { #category : 'public - bson-iter' }
@@ -2370,7 +2398,9 @@ LibBson >> reserve_bufferBson: bson total_size: total_size [
 { #category : 'accessing' }
 LibBson >> runner [
 	
-	^ LibMongoc uniqueInstance runner
+	^ TFProcessLocalWorker new 
+		defaultWorker: (runner ifNil: [ runner := TFWorker named: 'mongoc' ]);
+		yourself
 ]
 
 { #category : 'public - bson' }
@@ -2403,13 +2433,13 @@ LibBson >> strcasecmpS1: s1 s2: s2 [
 { #category : 'public - bson-string' }
 LibBson >> strdup: str [
 
-	^ self ffiCall: #(char* bson_strdup(const char* str))
+	^ self ffiCall: #(void* bson_strdup(const char* str))
 ]
 
 { #category : 'public - bson-error' }
 LibBson >> strerror_rErr_code: err_code buf: buf buflen: buflen [
 
-	^ self ffiCall: #(char* bson_strerror_r(int err_code, char* buf, size_t buflen))
+	^ self ffiCall: #(void* bson_strerror_r(int err_code, char* buf, size_t buflen))
 ]
 
 { #category : 'public - bson-string' }
@@ -2439,7 +2469,7 @@ LibBson >> string_append_unicharString: string unichar: unichar [
 { #category : 'public - bson-string' }
 LibBson >> string_freeString: string free_segment: free_segment [
 
-	^ self ffiCall: #(char* bson_string_free(bson_string_t* string, int free_segment))
+	^ self ffiCall: #(void* bson_string_free(bson_string_t* string, int free_segment))
 ]
 
 { #category : 'public - bson-string' }
@@ -2463,7 +2493,7 @@ LibBson >> strncpyDst: dst src: src size: size [
 { #category : 'public - bson-string' }
 LibBson >> strndupStr: str n_bytes: n_bytes [
 
-	^ self ffiCall: #(char* bson_strndup(const char* str, size_t n_bytes))
+	^ self ffiCall: #(void* bson_strndup(const char* str, size_t n_bytes))
 ]
 
 { #category : 'public - bson-string' }
@@ -2501,7 +2531,7 @@ LibBson >> unix64LibraryName [
 { #category : 'public - bson-utf8' }
 LibBson >> utf8_escape_for_jsonUtf8: utf8 utf8_len: utf8_len [
 
-	^ self ffiCall: #(char* bson_utf8_escape_for_json(const char* utf8, ssize_t utf8_len))
+	^ self ffiCall: #(void* bson_utf8_escape_for_json(const char* utf8, ssize_t utf8_len))
 ]
 
 { #category : 'public - bson-utf8' }
