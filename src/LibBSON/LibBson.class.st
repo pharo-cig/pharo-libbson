@@ -1,12 +1,14 @@
 "
 Bindings for [libbson](https://github.com/mongodb/mongo-c-driver/tree/master/src/libbson).
 
-Generated with: ```smalltalk
+Generated with: 
+```smalltalk
 CigCLibraryGenerator new
 	packageName: 'LibBSON';
 	prefix: 'BSON';
 	libraryName: 'bson';
 	unixLibraryName: 'libbson-1.0.so';
+	winLibraryName: 'libbson2.dll';
 	cExcludePath: '/usr/include';
 	cIncludePath: '/usr/include/libbson-1.0';
 	importUnit: '
@@ -2625,7 +2627,7 @@ LibBson >> win32LibraryName [
 
 	^ FFIWindowsLibraryFinder new
 		userPaths: #('./CIG/lib');
-		findLibrary: 'bson.dll'
+		findLibrary: 'libbson2.dll'
 ]
 
 { #category : 'public - bson-writer' }
